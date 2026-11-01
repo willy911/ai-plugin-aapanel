@@ -1,0 +1,12 @@
+{
+  "author": "willy911",
+  "checks": "/www/server/panel/plugin/ai_chat_agent",
+  "default": false,
+  "display": 0,
+  "name": "ai_chat_agent",
+  "ps": "Chat AI + Mode Agent ala Terwo untuk aaPanel: chat OpenAI-compatible, agent dengan tool exec/read_file/write_file/list_dir/list_sites, approval per tool tulis/eksekusi, tanpa dashboard terpisah.",
+  "shell": "install.sh",
+  "title": "AI Chat Agent",
+  "type": "plugin",
+  "versions": "1.1.2"
+}

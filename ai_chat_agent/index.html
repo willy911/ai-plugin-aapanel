@@ -1,0 +1,549 @@
+<style>
+/* ===== AI Chat Agent v1.1.0 — UI plugin aaPanel native =====
+   3 menu (Pengaturan / Chat / Agent) + sidebar daftar session di samping.
+   Output model dirender sebagai TEKS (bukan HTML) supaya tidak bisa
+   menyuntik markup. Semua kontrol di dalam jendela panel, tanpa
+   dashboard/port terpisah. */
+#ac-wrap{font-size:13px;color:#333;width:100%;min-width:0;line-height:1.5}
+#ac-wrap *{box-sizing:border-box}
+.ac-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.ac-title{font-size:16px}
+.ac-badge{padding:2px 10px;border-radius:10px;font-size:12px;color:#fff;white-space:nowrap}
+.ac-on{background:#20a53a}.ac-off{background:#c0392b}.ac-warn{background:#e67e22}
+.ac-btn{background:#20a53a;color:#fff;border:none;padding:7px 14px;border-radius:3px;cursor:pointer;font-size:13px;min-height:34px;white-space:nowrap}
+.ac-btn:hover{opacity:.9}
+.ac-btn.grey{background:#888}.ac-btn.red{background:#c0392b}.ac-btn.blue{background:#2a7ae2}
+.ac-btn.small{padding:5px 10px;min-height:30px;font-size:12px}
+.ac-btn:disabled{opacity:.55;cursor:default}
+.ac-menu{display:flex;gap:2px;border-bottom:2px solid #20a53a;margin-bottom:12px;flex-wrap:wrap}
+.ac-tab{padding:8px 18px;cursor:pointer;background:#f1f1f1;border-radius:4px 4px 0 0;border:none;font-size:13px}
+.ac-tab.act{background:#20a53a;color:#fff}
+.ac-layout{display:flex;gap:12px;align-items:flex-start}
+#ac-sidebar{flex:0 0 230px;min-width:0;border:1px solid #e6e6e6;border-radius:4px;background:#fafafa;padding:10px;max-height:600px;overflow:auto}
+.ac-side-head{display:flex;align-items:center;gap:4px;margin-bottom:6px}
+.ac-side-title{font-weight:600;font-size:13px;flex:1;min-width:0}
+.ac-side-list{list-style:none;margin:0 0 8px;padding:0}
+.ac-side-list li{display:flex;align-items:center;gap:4px;padding:7px 8px;border-bottom:1px solid #eee;cursor:pointer;border-radius:3px}
+.ac-side-list li:hover{background:#f1f1f1}
+.ac-side-list li.act{background:#e6f4ea;border-left:3px solid #20a53a}
+.ac-side-item{flex:1;min-width:0}
+.ac-side-item-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
+.ac-side-item-title input{width:100%;padding:4px 6px;border:1px solid #20a53a;border-radius:3px;font-size:13px}
+.ac-side-meta{color:#888;font-size:11px}
+.ac-side-actions{display:flex;gap:2px;flex:none}
+.ac-icon-btn{border:none;background:none;cursor:pointer;font-size:14px;line-height:1;padding:3px;opacity:.65;border-radius:3px}
+.ac-icon-btn:hover{opacity:1;background:#e9e9e9}
+.ac-icon-btn.danger{color:#c0392b}
+#ac-main{flex:1;min-width:0}
+.ac-pane{display:none}
+.ac-pane.act{display:block}
+.ac-box{border:1px solid #e6e6e6;border-radius:4px;padding:12px;margin-bottom:12px}
+.ac-box h4{margin:0 0 8px;font-size:13px}
+.ac-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:6px 0}
+.ac-row label{width:110px;color:#555;font-size:12px;flex:none}
+.ac-row input,.ac-row select,.ac-row textarea{flex:1 1 220px;padding:7px 8px;border:1px solid #ccc;border-radius:3px;font-size:13px;background:#fff}
+.ac-note{color:#888;font-size:12px}
+.ac-warnbox{background:#fff8e6;border:1px solid #f0c36d;border-radius:4px;padding:10px 12px;margin-bottom:12px;font-size:12.5px}
+.ac-messages{border:1px solid #e6e6e6;border-radius:4px;padding:12px;height:420px;overflow:auto;display:flex;flex-direction:column;gap:8px;background:#fafafa;margin-bottom:10px}
+.ac-bubble{max-width:85%;padding:8px 12px;border-radius:8px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px}
+.ac-user{align-self:flex-end;background:#20a53a;color:#fff}
+.ac-assistant{align-self:flex-start;background:#fff;border:1px solid #e6e6e6}
+.ac-tool{align-self:flex-start;background:#fff;border:1px dashed #bbb;font-size:12.5px;max-width:85%;padding:8px 12px;border-radius:8px}
+.ac-tool b{display:block;margin-bottom:2px}
+.ac-tool pre{margin:4px 0 0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;max-height:220px;overflow:auto}
+.ac-approval{align-self:flex-start;background:#fff8e6;border:1px solid #f0c36d;max-width:85%;padding:10px 12px;border-radius:8px}
+.ac-approval pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;max-height:200px;overflow:auto;background:#fff;padding:8px;border:1px solid #eee;border-radius:3px}
+.ac-input-row{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}
+.ac-input-row textarea{flex:1 1 300px;height:64px;padding:8px;border:1px solid #ccc;border-radius:3px;font-size:13px}
+.ac-status{color:#777;font-size:12px;margin-top:6px}
+@media (max-width:760px){
+  .ac-layout{flex-direction:column}
+  #ac-sidebar{flex:none;width:100%;max-height:220px}
+  .ac-messages{height:320px}
+  .ac-row label{width:100%}
+  .ac-bubble,.ac-approval,.ac-tool{max-width:100%}
+}
+</style>
+<div id="ac-wrap">
+  <div class="ac-head">
+    <strong class="ac-title">🤖 AI Chat Agent</strong>
+    <span id="ac-badge" class="ac-badge ac-off">memuat…</span>
+    <span id="ac-root-info" class="ac-note"></span>
+  </div>
+
+  <div class="ac-menu">
+    <button class="ac-tab" data-menu="settings" onclick="acSwitchMenu('settings')">⚙️ Pengaturan</button>
+    <button class="ac-tab act" data-menu="chat" onclick="acSwitchMenu('chat')">💬 Chat</button>
+    <button class="ac-tab" data-menu="agent" onclick="acSwitchMenu('agent')">🤖 Agent</button>
+  </div>
+
+  <div class="ac-layout">
+    <aside id="ac-sidebar">
+      <div id="ac-side-chat">
+        <div class="ac-side-head">
+          <div class="ac-side-title">Session Chat</div>
+          <button class="ac-icon-btn" title="Chat baru" onclick="acNewChat()">＋</button>
+          <button class="ac-icon-btn" title="Muat ulang daftar" onclick="acLoadChatSessions()">↻</button>
+        </div>
+        <ul class="ac-side-list" id="ac-chat-list"><li><span class="ac-note">memuat…</span></li></ul>
+        <div class="ac-note" style="margin-top:6px">Session tersimpan di server, jadi tetap ada walau dibuka dari perangkat lain. Klik ✏️ untuk rename, 🗑️ untuk hapus.</div>
+      </div>
+      <div id="ac-side-agent" style="display:none">
+        <div class="ac-side-head">
+          <div class="ac-side-title">Session Agent (run)</div>
+          <button class="ac-icon-btn" title="Muat ulang daftar" onclick="acLoadAgentRuns()">↻</button>
+        </div>
+        <ul class="ac-side-list" id="ac-run-list"><li><span class="ac-note">memuat…</span></li></ul>
+        <div class="ac-note" style="margin-top:6px">Klik run untuk melihat ulang progres &amp; approval-nya. Run baru dibuat dari kolom kirim di kanan. Run yang masih jalan tidak bisa dihapus — hentikan dulu.</div>
+      </div>
+      <div id="ac-side-settings" style="display:none">
+        <div class="ac-side-title">Ringkasan Pengaturan</div>
+        <div id="ac-side-cfg" class="ac-note">memuat…</div>
+        <div class="ac-note" style="margin-top:8px">Key tidak pernah ditampilkan kembali. Kolom key kosong saat Simpan = pakai key tersimpan.</div>
+      </div>
+    </aside>
+
+    <main id="ac-main">
+      <!-- ============ PENGATURAN ============ -->
+      <section class="ac-pane" id="ac-pane-settings">
+        <div class="ac-box">
+          <h4>Pengaturan AI <span class="ac-note">(endpoint OpenAI-compatible, mis. 9Router)</span></h4>
+          <div class="ac-row"><label>Endpoint</label><input id="ac-endpoint" type="text" placeholder="https://ai.skyzo.biz.id/v1"></div>
+          <div class="ac-row"><label>Model</label>
+            <select id="ac-model-select" style="flex:0 0 200px"><option value="">— pilih dari server —</option></select>
+            <input id="ac-model" type="text" placeholder="atau ketik manual, mis. bansos-mochin/deepseek-v4.1-flash">
+          </div>
+          <div class="ac-row"><label>API key</label><input id="ac-key" type="password" placeholder="kosong = pakai key tersimpan"></div>
+          <div class="ac-row"><label>Agent root</label><input id="ac-root" type="text" placeholder="/www/wwwroot"><span class="ac-note">Tool file hanya boleh di dalam sini.</span></div>
+          <div class="ac-row">
+            <button class="ac-btn blue small" onclick="acFetchModels()">Fetch Models</button>
+            <button class="ac-btn small" onclick="acSaveConfig()">Simpan Pengaturan</button>
+            <span id="ac-cfg-status" class="ac-note"></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ CHAT ============ -->
+      <section class="ac-pane act" id="ac-pane-chat">
+        <div class="ac-box">
+          <div id="ac-chat-messages" class="ac-messages"></div>
+          <div class="ac-input-row">
+            <textarea id="ac-chat-input" placeholder="Tulis pesan… (Enter kirim, Shift+Enter baris baru)"></textarea>
+            <button class="ac-btn" id="ac-chat-send" onclick="acSendChat()">Kirim</button>
+          </div>
+          <div id="ac-chat-status" class="ac-status"></div>
+        </div>
+      </section>
+
+      <!-- ============ AGENT ============ -->
+      <section class="ac-pane" id="ac-pane-agent">
+        <div class="ac-warnbox">
+          <b>Perhatian — agent jalan sebagai user panel (biasanya root).</b>
+          Tool baca (<code>list_dir</code>, <code>read_file</code>, <code>list_sites</code>) jalan otomatis,
+          tapi <code>exec</code> dan <code>write_file</code> <b>selalu</b> minta approval Allow/Deny/Stop per tool.
+          Tidak ada "Always Allow". Setujui hanya perintah yang kamu pahami.
+          Tool file dikurung di agent root; <code>exec</code> sendiri tidak dikurung path
+          (shell bisa <code>cd</code> ke mana saja) — approval adalah pengamannya.
+        </div>
+        <div class="ac-box">
+          <div class="ac-row" style="margin:0 0 8px">
+            <span id="ac-run-status" class="ac-note"></span>
+          </div>
+          <div id="ac-agent-messages" class="ac-messages"></div>
+          <div class="ac-input-row">
+            <textarea id="ac-agent-input" placeholder="Perintah untuk agent… (Enter kirim, Shift+Enter baris baru)"></textarea>
+            <button class="ac-btn" id="ac-agent-send" onclick="acSendAgent()">Kirim ke Agent</button>
+            <button class="ac-btn red" id="ac-agent-stop" onclick="acStopAgent()" style="display:none">Stop run</button>
+          </div>
+          <div id="ac-agent-status" class="ac-status"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script>
+(function(){
+  var activeMenu = 'chat';
+  var chatSessions = [], activeChatId = null, chatMessages = [];
+  var agentHistory = [], curRun = null, pollTimer = null, rendered = 0, runAssistantTexts = [];
+
+  function api(action, data, cb){
+    $.post('/plugin?action=a&name=ai_chat_agent&s=' + action, data || {}, function(r){
+      if (typeof r === 'string') { try { r = JSON.parse(r); } catch(e){} }
+      cb(r || {status:false, msg:'Respons panel tidak dikenali'});
+    }, 'json').fail(function(){ cb({status:false, msg:'Gagal menghubungi panel'}); });
+  }
+  function el(id){ return document.getElementById(id); }
+  function escText(s){ return String(s == null ? '' : s); }
+
+  function bubble(containerId, cls, text){
+    var d = document.createElement('div');
+    d.className = 'ac-bubble ' + cls;
+    d.textContent = text;
+    var box = el(containerId);
+    box.appendChild(d);
+    box.scrollTop = box.scrollHeight;
+    return d;
+  }
+  function toolBubble(containerId, tool, result){
+    var d = document.createElement('div');
+    d.className = 'ac-tool';
+    var b = document.createElement('b'); b.textContent = '🔧 ' + tool;
+    var pre = document.createElement('pre');
+    pre.textContent = result !== undefined ? result : '';
+    d.appendChild(b); d.appendChild(pre);
+    var box = el(containerId);
+    box.appendChild(d);
+    box.scrollTop = box.scrollHeight;
+    return d;
+  }
+  function approvalBubble(containerId, runId, tool, args){
+    var d = document.createElement('div');
+    d.className = 'ac-approval';
+    var t = document.createElement('div');
+    t.innerHTML = '<b>⚠️ Perlu approval: ' + escText(tool) + '</b>';
+    var pre = document.createElement('pre');
+    pre.textContent = JSON.stringify(args || {}, null, 2);
+    var row = document.createElement('div');
+    row.style.marginTop = '8px'; row.style.display = 'flex'; row.style.gap = '6px'; row.style.flexWrap = 'wrap';
+    function mk(label, cls, decision){
+      var b = document.createElement('button');
+      b.className = 'ac-btn small ' + (cls || '');
+      b.textContent = label;
+      b.onclick = function(){
+        row.querySelectorAll('button').forEach(function(x){ x.disabled = true; });
+        api('agent_approve', {run_id: runId, decision: decision}, function(r){
+          el('ac-agent-status').textContent = r.msg || '';
+          if (decision === 'stop') acStopPolling();
+        });
+      };
+      row.appendChild(b);
+    }
+    mk('Allow', '', 'allow');
+    mk('Deny', 'grey', 'deny');
+    mk('Stop run', 'red', 'stop');
+    d.appendChild(t); d.appendChild(pre); d.appendChild(row);
+    var box = el(containerId);
+    box.appendChild(d);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  /* ---------- menu ---------- */
+  window.acSwitchMenu = function(menu){
+    activeMenu = menu;
+    document.querySelectorAll('.ac-tab').forEach(function(t){
+      t.classList.toggle('act', t.getAttribute('data-menu') === menu);
+    });
+    ['settings','chat','agent'].forEach(function(m){
+      el('ac-pane-' + m).classList.toggle('act', m === menu);
+      el('ac-side-' + m).style.display = (m === menu) ? '' : 'none';
+    });
+    if (menu === 'chat') acLoadChatSessions(true);
+    if (menu === 'agent') acLoadAgentRuns();
+  };
+
+  /* ---------- aksi list session: ikon saja, tanpa tombol teks ----------
+     Rename inline di tempat (Enter = simpan, Esc = batal), jadi tidak
+     membuka dialog/modal yang menutupi halaman. Hapus tetap pakai
+     confirm() bawaan browser supaya tidak terhapus tanpa sengaja. */
+  function iconBtn(icon, title, danger, onclick){
+    var b = document.createElement('button');
+    b.className = 'ac-icon-btn' + (danger ? ' danger' : '');
+    b.textContent = icon;
+    b.title = title;
+    b.onclick = function(e){ e.stopPropagation(); onclick(); };
+    return b;
+  }
+  function startInlineRename(titleEl, current, onSave){
+    var input = document.createElement('input');
+    input.type = 'text';
+    input.value = current;
+    input.maxLength = 80;
+    titleEl.textContent = '';
+    titleEl.appendChild(input);
+    input.focus();
+    input.select();
+    var done = false;
+    function cancel(){ if (done) return; done = true; titleEl.textContent = current; }
+    function save(){
+      if (done) return;
+      done = true;
+      var v = input.value.trim();
+      if (!v || v === current) { titleEl.textContent = current; return; }
+      onSave(v);
+    }
+    input.addEventListener('keydown', function(e){
+      if (e.key === 'Enter') { e.preventDefault(); save(); }
+      else if (e.key === 'Escape') { cancel(); }
+    });
+    input.addEventListener('blur', cancel);
+    input.addEventListener('click', function(e){ e.stopPropagation(); });
+  }
+
+  /* ---------- session chat (sidebar kiri) ---------- */
+  function renderChatList(){
+    var ul = el('ac-chat-list');
+    ul.innerHTML = '';
+    if (!chatSessions.length) { ul.innerHTML = '<li><span class="ac-note">Belum ada session — mulai dari Chat baru.</span></li>'; return; }
+    chatSessions.forEach(function(s){
+      var li = document.createElement('li');
+      if (s.id === activeChatId) li.className = 'act';
+      var item = document.createElement('div');
+      item.className = 'ac-side-item';
+      var title = document.createElement('div');
+      title.className = 'ac-side-item-title';
+      title.textContent = s.title || 'Chat baru';
+      var meta = document.createElement('div');
+      meta.className = 'ac-side-meta';
+      meta.textContent = (s.count || 0) + ' pesan';
+      item.appendChild(title); item.appendChild(meta);
+      item.onclick = function(){ acSelectChat(s.id); };
+      var actions = document.createElement('div');
+      actions.className = 'ac-side-actions';
+      actions.appendChild(iconBtn('✏️', 'Rename session', false, function(){
+        startInlineRename(title, s.title || 'Chat baru', function(v){
+          api('rename_chat_session', {session_id: s.id, title: v}, function(r){
+            if (!r.status) el('ac-chat-status').textContent = r.msg;
+            acLoadChatSessions(true);
+          });
+        });
+      }));
+      actions.appendChild(iconBtn('🗑️', 'Hapus session', true, function(){
+        if (!confirm('Hapus session "' + (s.title || '') + '"?')) return;
+        api('delete_chat_session', {session_id: s.id}, function(){
+          if (s.id === activeChatId) acNewChat(false);
+          acLoadChatSessions(true);
+        });
+      }));
+      li.appendChild(item); li.appendChild(actions);
+      ul.appendChild(li);
+    });
+  }
+  window.acLoadChatSessions = function(keepSelection){
+    api('list_chat_sessions', {}, function(r){
+      chatSessions = (r.status && r.data && r.data.sessions) || [];
+      if (!keepSelection) {
+        if (chatSessions.length && !chatSessions.some(function(s){ return s.id === activeChatId; })) {
+          acSelectChat(chatSessions[0].id);
+          return;
+        }
+      }
+      renderChatList();
+    });
+  };
+  window.acSelectChat = function(id){
+    api('get_chat_session', {session_id: id}, function(r){
+      if (!r.status) { el('ac-chat-status').textContent = r.msg; return; }
+      activeChatId = r.data.session.id;
+      chatMessages = r.data.session.messages || [];
+      renderChat();
+      renderChatList();
+    });
+  };
+  function renderChat(){
+    var box = el('ac-chat-messages');
+    box.innerHTML = '';
+    chatMessages.forEach(function(m){
+      if (m.role === 'user') bubble('ac-chat-messages', 'ac-user', m.content);
+      else if (m.role === 'assistant') bubble('ac-chat-messages', 'ac-assistant', m.content);
+    });
+  }
+  window.acNewChat = function(render){
+    activeChatId = null;
+    chatMessages = [];
+    if (render !== false) { renderChat(); renderChatList(); }
+  };
+  function saveChat(){
+    if (!chatMessages.length) return;
+    api('save_chat_session', {session_id: activeChatId || '', messages: JSON.stringify(chatMessages)}, function(r){
+      if (r.status && r.data && r.data.session) {
+        activeChatId = r.data.session.id;
+        acLoadChatSessions(true);
+      }
+    });
+  }
+  window.acSendChat = function(){
+    var inp = el('ac-chat-input'), text = inp.value.trim();
+    if (!text) return;
+    chatMessages.push({role:'user', content: text});
+    bubble('ac-chat-messages', 'ac-user', text);
+    inp.value = '';
+    el('ac-chat-status').textContent = 'Mengirim…';
+    saveChat();
+    api('chat', {messages: JSON.stringify(chatMessages)}, function(r){
+      el('ac-chat-status').textContent = '';
+      if (!r.status) { bubble('ac-chat-messages', 'ac-assistant', 'Error: ' + r.msg); return; }
+      var reply = (r.data && r.data.reply) || '';
+      chatMessages.push({role:'assistant', content: reply});
+      bubble('ac-chat-messages', 'ac-assistant', reply);
+      saveChat();
+    });
+  };
+
+  /* ---------- session agent (sidebar kiri) ---------- */
+  function renderAgentList(runs){
+    var ul = el('ac-run-list');
+    ul.innerHTML = '';
+    if (!runs.length) { ul.innerHTML = '<li><span class="ac-note">Belum ada run.</span></li>'; return; }
+    runs.forEach(function(run){
+      var li = document.createElement('li');
+      if (run.id === curRun) li.className = 'act';
+      var item = document.createElement('div');
+      item.className = 'ac-side-item';
+      var title = document.createElement('div');
+      title.className = 'ac-side-item-title';
+      title.textContent = run.title || run.preview || '(tanpa pesan)';
+      var meta = document.createElement('div');
+      meta.className = 'ac-side-meta';
+      meta.textContent = run.status + ' · ' + (run.steps || 0) + ' langkah';
+      item.appendChild(title); item.appendChild(meta);
+      item.onclick = function(){ acOpenRun(run.id); };
+      var actions = document.createElement('div');
+      actions.className = 'ac-side-actions';
+      actions.appendChild(iconBtn('✏️', 'Rename run', false, function(){
+        startInlineRename(title, run.title || run.preview || '', function(v){
+          api('rename_agent_run', {run_id: run.id, title: v}, function(r){
+            if (!r.status) el('ac-agent-status').textContent = r.msg;
+            acLoadAgentRuns();
+          });
+        });
+      }));
+      actions.appendChild(iconBtn('🗑️', 'Hapus run', true, function(){
+        if (!confirm('Hapus run "' + (run.title || run.preview || run.id) + '"?')) return;
+        api('delete_agent_run', {run_id: run.id}, function(r){
+          if (!r.status) { el('ac-agent-status').textContent = r.msg; return; }
+          if (run.id === curRun) {
+            curRun = null;
+            el('ac-agent-messages').innerHTML = '';
+            el('ac-run-status').textContent = '';
+          }
+          acLoadAgentRuns();
+        });
+      }));
+      li.appendChild(item); li.appendChild(actions);
+      ul.appendChild(li);
+    });
+  }
+  window.acLoadAgentRuns = function(){
+    api('list_runs', {}, function(r){
+      renderAgentList((r.status && r.data && r.data.runs) || []);
+    });
+  };
+  window.acOpenRun = function(runId){
+    curRun = runId;
+    api('agent_status', {run_id: runId}, function(r){
+      if (!r.status) { el('ac-agent-status').textContent = r.msg; return; }
+      el('ac-agent-messages').innerHTML = '';
+      acRenderRun(r.data, true);
+      if (r.data.status === 'running' || r.data.status === 'waiting_approval') acStartPolling(runId);
+      acLoadAgentRuns();
+    });
+  };
+  function acRenderRun(run, reset){
+    if (reset) { rendered = 0; runAssistantTexts = []; }
+    var events = run.events || [];
+    for (; rendered < events.length; rendered++){
+      var ev = events[rendered];
+      if (ev.type === 'text') { bubble('ac-agent-messages', 'ac-assistant', ev.content || ''); runAssistantTexts.push(ev.content || ''); }
+      else if (ev.type === 'tool') { toolBubble('ac-agent-messages', ev.tool, ev.result); }
+      else if (ev.type === 'approval') { approvalBubble('ac-agent-messages', run.id, ev.tool, ev.args); }
+      else if (ev.type === 'error') { bubble('ac-agent-messages', 'ac-assistant', 'Error: ' + (ev.error || 'Agent gagal')); }
+      else if (ev.type === 'stopped') { bubble('ac-agent-messages', 'ac-assistant', '[agent dihentikan]'); }
+    }
+    el('ac-run-status').textContent = 'langkah: ' + (run.steps || 0) + ' · status: ' + (run.status || '');
+    if (run.status === 'done' || run.status === 'error' || run.status === 'stopped'){
+      acStopPolling();
+      var joined = runAssistantTexts.join('').trim();
+      if (joined) agentHistory.push({role:'assistant', content: joined});
+      acLoadAgentRuns();
+    }
+  }
+  window.acRenderRun = acRenderRun;
+  function acStopPolling(){
+    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+    el('ac-agent-stop').style.display = 'none';
+    el('ac-agent-send').disabled = false;
+  }
+  window.acStopPolling = acStopPolling;
+  function acStartPolling(runId){
+    acStopPolling();
+    el('ac-agent-stop').style.display = '';
+    el('ac-agent-send').disabled = true;
+    pollTimer = setInterval(function(){
+      api('agent_status', {run_id: runId}, function(r){
+        if (!r.status) { el('ac-agent-status').textContent = r.msg; acStopPolling(); return; }
+        acRenderRun(r.data, false);
+      });
+    }, 1500);
+  }
+  window.acSendAgent = function(){
+    var inp = el('ac-agent-input'), text = inp.value.trim();
+    if (!text) return;
+    agentHistory.push({role:'user', content: text});
+    bubble('ac-agent-messages', 'ac-user', text);
+    inp.value = '';
+    api('agent_start', {messages: JSON.stringify(agentHistory)}, function(r){
+      if (!r.status) { el('ac-agent-status').textContent = r.msg; bubble('ac-agent-messages', 'ac-assistant', 'Error: ' + r.msg); return; }
+      curRun = r.data.run_id;
+      rendered = 0; runAssistantTexts = [];
+      el('ac-agent-status').textContent = 'Agent berjalan… (run ' + curRun + ')';
+      acStartPolling(curRun);
+      acLoadAgentRuns();
+    });
+  };
+  window.acStopAgent = function(){
+    if (!curRun) return;
+    api('agent_stop', {run_id: curRun}, function(r){ el('ac-agent-status').textContent = r.msg || ''; });
+    acStopPolling();
+    bubble('ac-agent-messages', 'ac-assistant', '[agent dihentikan]');
+  };
+
+  /* ---------- pengaturan ---------- */
+  window.acFetchModels = function(){
+    el('ac-cfg-status').textContent = 'Mengambil daftar model…';
+    api('fetch_models', {endpoint: el('ac-endpoint').value, api_key: el('ac-key').value}, function(r){
+      if (!r.status) { el('ac-cfg-status').textContent = r.msg; return; }
+      var sel = el('ac-model-select');
+      sel.innerHTML = '<option value="">— pilih dari server —</option>';
+      (r.data.models || []).forEach(function(m){
+        var o = document.createElement('option'); o.value = m; o.textContent = m; sel.appendChild(o);
+      });
+      el('ac-cfg-status').textContent = (r.data.models || []).length + ' model ditemukan.';
+    });
+  };
+  window.acSaveConfig = function(){
+    api('save_config', {
+      endpoint: el('ac-endpoint').value,
+      model: el('ac-model').value,
+      api_key: el('ac-key').value,
+      agent_root: el('ac-root').value
+    }, function(r){
+      el('ac-cfg-status').textContent = r.msg || '';
+      if (r.status) { acApplyConfig(r.data); el('ac-key').value = ''; }
+    });
+  };
+  window.acApplyConfig = function(cfg){
+    if (!cfg) return;
+    el('ac-endpoint').value = cfg.endpoint || '';
+    el('ac-model').value = cfg.model || '';
+    el('ac-root').value = cfg.agent_root || '';
+    el('ac-root-info').textContent = cfg.agent_root ? ('agent root: ' + cfg.agent_root + (cfg.agent_root_exists ? '' : ' (tidak ditemukan!)')) : '';
+    el('ac-side-cfg').textContent = 'Endpoint: ' + (cfg.endpoint || '(belum diatur)') + ' · Model: ' + (cfg.model || '(belum diatur)') + ' · Key: ' + (cfg.has_key ? 'tersimpan' : 'belum ada') + ' · Agent root: ' + (cfg.agent_root || '-');
+    var badge = el('ac-badge');
+    if (cfg.endpoint && cfg.model && cfg.has_key) { badge.className = 'ac-badge ac-on'; badge.textContent = 'siap'; }
+    else { badge.className = 'ac-badge ac-off'; badge.textContent = 'belum diatur'; }
+  };
+
+  el('ac-model-select').onchange = function(){ if (this.value) el('ac-model').value = this.value; };
+  function bindEnter(inputId, fn){
+    el(inputId).addEventListener('keydown', function(e){
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); fn(); }
+    });
+  }
+  bindEnter('ac-chat-input', acSendChat);
+  bindEnter('ac-agent-input', acSendAgent);
+  api('get_config', {}, function(r){ if (r.status) acApplyConfig(r.data); });
+  acLoadChatSessions(false);
+})();
+</script>
