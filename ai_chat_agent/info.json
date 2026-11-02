@@ -8,5 +8,5 @@
   "shell": "install.sh",
   "title": "AI Chat Agent",
   "type": "plugin",
-  "versions": "1.1.2"
+  "versions": "1.1.3"
 }

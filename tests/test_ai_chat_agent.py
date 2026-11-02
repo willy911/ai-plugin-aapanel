@@ -390,5 +390,37 @@ class TestInstallScript(unittest.TestCase):
             ai_core.list_chat_sessions = saved
 
 
+class TestFrontend(unittest.TestCase):
+    """Regresi v1.1.3: Always Allow + box yang bisa di-resize/scroll
+    adalah fitur frontend saja (backend tidak berubah) — jadi yang
+    diuji di sini adalah keberadaan potongan UI-nya di index.html."""
+
+    def _html(self):
+        with open(os.path.join(PLUGIN_DIR, "index.html")) as f:
+            return f.read()
+
+    def test_always_allow_is_run_scoped_not_persistent(self):
+        html = self._html()
+        # Tombol ke-4 di bubble approval + flag frontend + pill indikator.
+        self.assertIn("Always Allow", html)
+        self.assertIn("acAlwaysAllow", html)
+        self.assertIn("ac-always-pill", html)
+        self.assertIn("acSetAlwaysAllow(false)", html)
+        # Scope-nya eksplisit: run ini saja, tidak tersimpan di server.
+        self.assertIn("run ini saja", html)
+        # Tidak ada penyimpanan flag ke localStorage / server.
+        self.assertNotIn("localStorage", html)
+        # Backend tidak ikut berubah: worker/dispatcher tidak mengenal
+        # decision baru — Always Allow tetap mengirim decision 'allow'.
+        self.assertIn("decision: 'allow'", html)
+
+    def test_chat_box_is_smaller_resizable_and_scrollable(self):
+        html = self._html()
+        self.assertIn("height:340px", html)          # dulu 420px
+        self.assertIn("resize:vertical", html)       # bisa ditarik kecil/besar
+        self.assertIn("overflow:auto", html)         # bisa di-scroll
+        self.assertIn("max-height:460px", html)      # sidebar dulu 600px
+
+
 if __name__ == "__main__":
     unittest.main()

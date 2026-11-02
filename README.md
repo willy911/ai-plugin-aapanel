@@ -95,7 +95,7 @@ Pengaturan → chat / centang Mode Agent.
 ## Build & test
 
 ```bash
-./scripts/package.sh            # hasil: dist/ai_chat_agent-1.1.2.zip
+./scripts/package.sh            # hasil: dist/ai_chat_agent-1.1.3.zip
 python3 -m unittest discover -s tests -v   # tanpa pytest, stdlib saja
 ```
 
@@ -106,6 +106,14 @@ agent yang menunggu approval `exec` lalu Allow → perintah jalan.
 
 ## Versi
 
+- **1.1.3** (2026-11-02) — approval kini 4 tombol: Allow / **Always
+  Allow** / Deny / Stop run. Always Allow hanya berlaku untuk run
+  yang sedang jalan (frontend saja, backend tidak berubah, tidak
+  tersimpan di server, mati saat run selesai/dihentikan/reload, dan
+  tidak dibawa ke run berikutnya); pill indikatornya bisa diklik
+  untuk mematikan. Box plugin dibuat sedikit lebih kecil (area chat
+  420px → 340px, sidebar maks 600px → 460px) dan bisa di-scroll
+  serta di-resize vertikal dengan drag di pojok bawah box.
 - **1.1.2** (2026-11-01) — sidebar session pakai ikon saja (✏️
   rename inline, 🗑️ hapus, ＋ chat baru, ↻ muat ulang) supaya tidak
   menutupi halaman; rename + hapus untuk session chat DAN run agent

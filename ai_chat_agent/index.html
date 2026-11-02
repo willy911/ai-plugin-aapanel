@@ -19,7 +19,7 @@
 .ac-tab{padding:8px 18px;cursor:pointer;background:#f1f1f1;border-radius:4px 4px 0 0;border:none;font-size:13px}
 .ac-tab.act{background:#20a53a;color:#fff}
 .ac-layout{display:flex;gap:12px;align-items:flex-start}
-#ac-sidebar{flex:0 0 230px;min-width:0;border:1px solid #e6e6e6;border-radius:4px;background:#fafafa;padding:10px;max-height:600px;overflow:auto}
+#ac-sidebar{flex:0 0 210px;min-width:0;border:1px solid #e6e6e6;border-radius:4px;background:#fafafa;padding:10px;max-height:460px;overflow:auto}
 .ac-side-head{display:flex;align-items:center;gap:4px;margin-bottom:6px}
 .ac-side-title{font-weight:600;font-size:13px;flex:1;min-width:0}
 .ac-side-list{list-style:none;margin:0 0 8px;padding:0}
@@ -44,7 +44,8 @@
 .ac-row input,.ac-row select,.ac-row textarea{flex:1 1 220px;padding:7px 8px;border:1px solid #ccc;border-radius:3px;font-size:13px;background:#fff}
 .ac-note{color:#888;font-size:12px}
 .ac-warnbox{background:#fff8e6;border:1px solid #f0c36d;border-radius:4px;padding:10px 12px;margin-bottom:12px;font-size:12.5px}
-.ac-messages{border:1px solid #e6e6e6;border-radius:4px;padding:12px;height:420px;overflow:auto;display:flex;flex-direction:column;gap:8px;background:#fafafa;margin-bottom:10px}
+.ac-messages{border:1px solid #e6e6e6;border-radius:4px;padding:10px;height:340px;min-height:180px;max-height:640px;resize:vertical;overflow:auto;display:flex;flex-direction:column;gap:8px;background:#fafafa;margin-bottom:10px}
+.ac-pill{display:inline-block;padding:2px 10px;border-radius:10px;font-size:12px;background:#fff3cd;border:1px solid #f0c36d;color:#856404;cursor:pointer;white-space:nowrap}
 .ac-bubble{max-width:85%;padding:8px 12px;border-radius:8px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px}
 .ac-user{align-self:flex-end;background:#20a53a;color:#fff}
 .ac-assistant{align-self:flex-start;background:#fff;border:1px solid #e6e6e6}
@@ -54,7 +55,7 @@
 .ac-approval{align-self:flex-start;background:#fff8e6;border:1px solid #f0c36d;max-width:85%;padding:10px 12px;border-radius:8px}
 .ac-approval pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;max-height:200px;overflow:auto;background:#fff;padding:8px;border:1px solid #eee;border-radius:3px}
 .ac-input-row{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}
-.ac-input-row textarea{flex:1 1 300px;height:64px;padding:8px;border:1px solid #ccc;border-radius:3px;font-size:13px}
+.ac-input-row textarea{flex:1 1 300px;height:52px;padding:8px;border:1px solid #ccc;border-radius:3px;font-size:13px}
 .ac-status{color:#777;font-size:12px;margin-top:6px}
 @media (max-width:760px){
   .ac-layout{flex-direction:column}
@@ -140,14 +141,18 @@
         <div class="ac-warnbox">
           <b>Perhatian — agent jalan sebagai user panel (biasanya root).</b>
           Tool baca (<code>list_dir</code>, <code>read_file</code>, <code>list_sites</code>) jalan otomatis,
-          tapi <code>exec</code> dan <code>write_file</code> <b>selalu</b> minta approval Allow/Deny/Stop per tool.
-          Tidak ada "Always Allow". Setujui hanya perintah yang kamu pahami.
+          tapi <code>exec</code> dan <code>write_file</code> minta approval Allow/Deny/Stop per tool.
+          Tombol <b>Always Allow</b> di kotak approval hanya berlaku untuk <b>run ini saja</b>:
+          selama aktif, <code>exec</code>/<code>write_file</code> berikutnya jalan tanpa ditanya lagi,
+          sampai run selesai, dihentikan, atau halaman di-reload — dan tidak pernah
+          tersimpan di server. Setujui hanya perintah yang kamu pahami.
           Tool file dikurung di agent root; <code>exec</code> sendiri tidak dikurung path
           (shell bisa <code>cd</code> ke mana saja) — approval adalah pengamannya.
         </div>
         <div class="ac-box">
           <div class="ac-row" style="margin:0 0 8px">
             <span id="ac-run-status" class="ac-note"></span>
+            <span id="ac-always-pill" class="ac-pill" style="display:none" title="Klik untuk mematikan Always Allow" onclick="acSetAlwaysAllow(false)">⚠️ Always Allow: ON (run ini saja)</span>
           </div>
           <div id="ac-agent-messages" class="ac-messages"></div>
           <div class="ac-input-row">
@@ -167,6 +172,19 @@
   var activeMenu = 'chat';
   var chatSessions = [], activeChatId = null, chatMessages = [];
   var agentHistory = [], curRun = null, pollTimer = null, rendered = 0, runAssistantTexts = [];
+  /* Always Allow — frontend saja (pola Terwo v1.19), backend tidak berubah:
+     flag hanya hidup di memori halaman ini, hanya untuk run yang sedang
+     berjalan, dan mati saat run selesai/dihentikan/reload. Tidak disimpan
+     di server, tidak dibawa ke run berikutnya. */
+  var acAlwaysAllow = false;
+  function acSetAlwaysAllow(on){
+    acAlwaysAllow = !!on;
+    var pill = el('ac-always-pill');
+    if (pill) pill.style.display = acAlwaysAllow ? '' : 'none';
+    if (!acAlwaysAllow) return;
+    el('ac-agent-status').textContent = 'Always Allow aktif untuk run ini — exec/write berikutnya jalan tanpa approval. Klik pill di atas atau Stop run untuk mematikan.';
+  }
+  window.acSetAlwaysAllow = acSetAlwaysAllow;
 
   function api(action, data, cb){
     $.post('/plugin?action=a&name=ai_chat_agent&s=' + action, data || {}, function(r){
@@ -221,6 +239,20 @@
       row.appendChild(b);
     }
     mk('Allow', '', 'allow');
+    (function(){
+      var b = document.createElement('button');
+      b.className = 'ac-btn small blue';
+      b.textContent = 'Always Allow';
+      b.title = 'Izinkan semua exec/write berikutnya, hanya untuk run ini saja';
+      b.onclick = function(){
+        row.querySelectorAll('button').forEach(function(x){ x.disabled = true; });
+        acSetAlwaysAllow(true);
+        api('agent_approve', {run_id: runId, decision: 'allow'}, function(r){
+          el('ac-agent-status').textContent = r.msg || '';
+        });
+      };
+      row.appendChild(b);
+    })();
     mk('Deny', 'grey', 'deny');
     mk('Stop run', 'red', 'stop');
     d.appendChild(t); d.appendChild(pre); d.appendChild(row);
@@ -431,6 +463,9 @@
     });
   };
   window.acOpenRun = function(runId){
+    /* Membuka run (termasuk run lama yang masih jalan) tidak membawa
+       Always Allow dari run sebelumnya — user harus klik lagi di bubble. */
+    acSetAlwaysAllow(false);
     curRun = runId;
     api('agent_status', {run_id: runId}, function(r){
       if (!r.status) { el('ac-agent-status').textContent = r.msg; return; }
@@ -447,12 +482,27 @@
       var ev = events[rendered];
       if (ev.type === 'text') { bubble('ac-agent-messages', 'ac-assistant', ev.content || ''); runAssistantTexts.push(ev.content || ''); }
       else if (ev.type === 'tool') { toolBubble('ac-agent-messages', ev.tool, ev.result); }
-      else if (ev.type === 'approval') { approvalBubble('ac-agent-messages', run.id, ev.tool, ev.args); }
+      else if (ev.type === 'approval') {
+        if (acAlwaysAllow) {
+          /* Auto-approve tanpa bubble, tapi tetap dicatat di layar agar
+             terlihat apa yang jalan otomatis. Backend tetap menerima satu
+             decision per tool — flag ini tidak mengubah backend. */
+          bubble('ac-agent-messages', 'ac-assistant', '⚡ Always Allow: ' + ev.tool + ' diizinkan otomatis (run ini).');
+          api('agent_approve', {run_id: run.id, decision: 'allow'}, function(r){
+            /* Bila auto-approve gagal, jangan biarkan run menggantung tanpa
+               bubble: tampilkan bubble manual agar user bisa approve sendiri. */
+            if (!r.status) approvalBubble('ac-agent-messages', run.id, ev.tool, ev.args);
+          });
+        } else {
+          approvalBubble('ac-agent-messages', run.id, ev.tool, ev.args);
+        }
+      }
       else if (ev.type === 'error') { bubble('ac-agent-messages', 'ac-assistant', 'Error: ' + (ev.error || 'Agent gagal')); }
       else if (ev.type === 'stopped') { bubble('ac-agent-messages', 'ac-assistant', '[agent dihentikan]'); }
     }
     el('ac-run-status').textContent = 'langkah: ' + (run.steps || 0) + ' · status: ' + (run.status || '');
     if (run.status === 'done' || run.status === 'error' || run.status === 'stopped'){
+      acSetAlwaysAllow(false);
       acStopPolling();
       var joined = runAssistantTexts.join('').trim();
       if (joined) agentHistory.push({role:'assistant', content: joined});
@@ -462,6 +512,8 @@
   window.acRenderRun = acRenderRun;
   function acStopPolling(){
     if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+    /* Berhenti (termasuk Stop run) selalu mematikan Always Allow. */
+    if (acAlwaysAllow) acSetAlwaysAllow(false);
     el('ac-agent-stop').style.display = 'none';
     el('ac-agent-send').disabled = false;
   }
@@ -480,6 +532,8 @@
   window.acSendAgent = function(){
     var inp = el('ac-agent-input'), text = inp.value.trim();
     if (!text) return;
+    /* Run baru selalu mulai tanpa Always Allow. */
+    acSetAlwaysAllow(false);
     agentHistory.push({role:'user', content: text});
     bubble('ac-agent-messages', 'ac-user', text);
     inp.value = '';

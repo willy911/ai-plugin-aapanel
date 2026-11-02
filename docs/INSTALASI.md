@@ -2,7 +2,7 @@
 
 ## 1. Pasang dari zip
 
-1. Ambil `dist/ai_chat_agent-1.1.2.zip` dari proyek ini.
+1. Ambil `dist/ai_chat_agent-1.1.3.zip` dari proyek ini.
 2. aaPanel → **App Store** → tombol **Import** (kanan atas) → pilih zip.
 3. Tunggu sampai muncul "installed". Kalau gagal dengan pesan
    "missing/empty files", ulangi Import — itu self-check `install.sh`
@@ -71,7 +71,7 @@
      — hasilnya harus `1`; kalau `0`, file di disk memang lama.
   3. Timpa paksa (config di `data/` tidak ikut tertimpa karena zip
      tidak berisi `data/`):
-     `unzip -o ai_chat_agent-1.1.2.zip -d /www/server/panel/plugin/ai_chat_agent/ && rm -rf /www/server/panel/plugin/ai_chat_agent/__pycache__ && bt restart`
+     `unzip -o ai_chat_agent-1.1.3.zip -d /www/server/panel/plugin/ai_chat_agent/ && rm -rf /www/server/panel/plugin/ai_chat_agent/__pycache__ && bt restart`
   Sejak v1.1.1, `install.sh` memeriksa simbol wajib dan akan menggagalkan
   instalasi parsial dengan pesan jelas, bukan membiarkannya crash di UI.
 
